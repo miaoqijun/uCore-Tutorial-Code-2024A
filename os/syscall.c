@@ -104,7 +104,9 @@ uint64 sys_spawn(uint64 va)
 
 uint64 sys_set_priority(long long prio){
     // TODO: your job is to complete the sys call
-    return -1;
+	if (prio < 2)
+    	return -1;
+	return curr_proc()->priority = prio;
 }
 
 
@@ -229,6 +231,9 @@ void syscall()
 		break;
 	case SYS_mmap:
 		ret = sys_mmap((void *)args[0], args[1], args[2], args[3], args[4]);
+		break;
+	case SYS_setpriority:
+		ret = sys_set_priority(args[0]);
 		break;
 	default:
 		ret = -1;
