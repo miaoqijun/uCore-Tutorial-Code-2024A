@@ -202,6 +202,25 @@ int exec(char *name)
 	return 0;
 }
 
+int spawn(char *name)
+{
+	struct proc *np;
+	// Allocate process.
+	if ((np = allocproc()) == 0) {
+		panic("allocproc\n");
+	}
+	np->parent = curr_proc();
+	np->state = RUNNABLE;
+	// Load program
+	int id = get_id_by_name(name);
+	if (id < 0)
+		return -1;
+	np->max_page = 0;
+	loader(id, np);
+	add_task(np);
+	return np->pid;
+}
+
 int wait(int pid, int *code)
 {
 	struct proc *np;
