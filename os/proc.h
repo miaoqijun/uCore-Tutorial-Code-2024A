@@ -6,6 +6,7 @@
 
 #define NPROC (512)
 #define FD_BUFFER_SIZE (16)
+#define BIG_STRIDE (65536)
 
 struct file;
 
@@ -47,6 +48,8 @@ struct proc {
 		[FD_BUFFER_SIZE]; //File descriptor table, using to record the files opened by the process
 	uint64 program_brk;
 	uint64 heap_bottom;
+	uint64 stride;
+	uint64 priority;
 };
 
 int cpuid();
