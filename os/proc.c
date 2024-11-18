@@ -276,8 +276,10 @@ int exec(char *path, char **argv)
 	return push_argv(p, argv);
 }
 
-int spawn(char *name)
+int spawn(char *path, char **argv)
 {
+	infof("spawn : %s\n", path);
+
 	struct proc *np;
 	// Allocate process.
 	if ((np = allocproc()) == 0) {
@@ -286,13 +288,15 @@ int spawn(char *name)
 	np->parent = curr_proc();
 	np->state = RUNNABLE;
 	// Load program
-	int id = get_id_by_name(name);
-	if (id < 0)
+	struct inode *ip;
+	if ((ip = namei(path)) == 0) {
+		errorf("invalid file name %s\n", path);
 		return -1;
-	np->max_page = 0;
-	loader(id, np);
+	}
+	bin_loader(ip, np);
+	iput(ip);
 	add_task(np);
-	return np->pid;
+	return push_argv(np, argv);
 }
 
 int wait(int pid, int *code)

@@ -142,14 +142,23 @@ uint64 sys_wait(int pid, uint64 va)
 	return wait(pid, code);
 }
 
-uint64 sys_spawn(uint64 va)
+uint64 sys_spawn(uint64 path, uint64 uargv)
 {
 	// TODO: your job is to complete the sys call
 	struct proc *p = curr_proc();
-	char name[200];
-	copyinstr(p->pagetable, name, va, 200);
-	debugf("sys_spawn %s\n", name);
-	return spawn(name);
+	char name[MAX_STR_LEN];
+	copyinstr(p->pagetable, name, path, MAX_STR_LEN);
+	uint64 arg;
+	static char strpool[MAX_ARG_NUM][MAX_STR_LEN];
+	char *argv[MAX_ARG_NUM];
+	int i;
+	for (i = 0; uargv && (arg = fetchaddr(p->pagetable, uargv));
+	     uargv += sizeof(char *), i++) {
+		copyinstr(p->pagetable, (char *)strpool[i], arg, MAX_STR_LEN);
+		argv[i] = (char *)strpool[i];
+	}
+	argv[i] = NULL;
+	return spawn(name, (char **)argv);
 }
 
 uint64 sys_set_priority(long long prio){
@@ -327,7 +336,7 @@ void syscall()
 		ret = sys_unlinkat(args[0], args[1], args[2]);
 		break;
 	case SYS_spawn:
-		ret = sys_spawn(args[0]);
+		ret = sys_spawn(args[0], args[1]);
 		break;
 	case SYS_sbrk:
                 ret = sys_sbrk(args[0]);
