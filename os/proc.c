@@ -276,7 +276,7 @@ int exec(char *path, char **argv)
 	return push_argv(p, argv);
 }
 
-int spawn(char *path, char **argv)
+int spawn(char *path)
 {
 	infof("spawn : %s\n", path);
 
@@ -287,6 +287,7 @@ int spawn(char *path, char **argv)
 	}
 	np->parent = curr_proc();
 	np->state = RUNNABLE;
+	init_stdio(np);
 	// Load program
 	struct inode *ip;
 	if ((ip = namei(path)) == 0) {
@@ -296,7 +297,7 @@ int spawn(char *path, char **argv)
 	bin_loader(ip, np);
 	iput(ip);
 	add_task(np);
-	return push_argv(np, argv);
+	return np->pid;
 }
 
 int wait(int pid, int *code)

@@ -142,23 +142,13 @@ uint64 sys_wait(int pid, uint64 va)
 	return wait(pid, code);
 }
 
-uint64 sys_spawn(uint64 path, uint64 uargv)
+uint64 sys_spawn(uint64 path)
 {
 	// TODO: your job is to complete the sys call
 	struct proc *p = curr_proc();
 	char name[MAX_STR_LEN];
 	copyinstr(p->pagetable, name, path, MAX_STR_LEN);
-	uint64 arg;
-	static char strpool[MAX_ARG_NUM][MAX_STR_LEN];
-	char *argv[MAX_ARG_NUM];
-	int i;
-	for (i = 0; uargv && (arg = fetchaddr(p->pagetable, uargv));
-	     uargv += sizeof(char *), i++) {
-		copyinstr(p->pagetable, (char *)strpool[i], arg, MAX_STR_LEN);
-		argv[i] = (char *)strpool[i];
-	}
-	argv[i] = NULL;
-	return spawn(name, (char **)argv);
+	return spawn(name);
 }
 
 uint64 sys_set_priority(long long prio){
@@ -194,20 +184,50 @@ uint64 sys_close(int fd)
 int sys_fstat(int fd, uint64 stat)
 {
 	//TODO: your job is to complete the syscall
-	return -1;
+	if (fd < 0 || fd > FD_BUFFER_SIZE)
+		return -1;
+	struct Stat s;
+	struct proc *p = curr_proc();
+	struct file *f = p->files[fd];
+	if (f == NULL) {
+		errorf("invalid fd %d\n", fd);
+		return -1;
+	}
+
+	switch (f->type) {
+		case FD_STDIO:
+			return -1;
+		case FD_INODE:
+			s.dev = 0;
+			s.ino = f->ip->inum;
+			s.mode = f->ip->type == T_DIR ? DIR : FILE;
+			s.nlink = f->ip->nlink;
+			return copyout(p->pagetable, stat, (char *)&s, sizeof(s));
+		default:
+			panic("unknown file type %d\n", f->type);
+	}
 }
 
 int sys_linkat(int olddirfd, uint64 oldpath, int newdirfd, uint64 newpath,
 	       uint64 flags)
 {
 	//TODO: your job is to complete the syscall
-	return -1;
+	struct proc *p = curr_proc();
+	char oldname[MAX_STR_LEN], newname[MAX_STR_LEN];
+	copyinstr(p->pagetable, oldname, oldpath, MAX_STR_LEN);
+	copyinstr(p->pagetable, newname, newpath, MAX_STR_LEN);
+	if (strncmp(oldname, newname, MAX_STR_LEN) == 0)
+		return -1;
+	return linkat(olddirfd, oldname, newdirfd, newname, flags);
 }
 
 int sys_unlinkat(int dirfd, uint64 name, uint64 flags)
 {
 	//TODO: your job is to complete the syscall
-	return -1;
+	struct proc *p = curr_proc();
+	char str[MAX_STR_LEN];
+	copyinstr(p->pagetable, str, name, MAX_STR_LEN);
+	return unlinkat(dirfd, str, flags);
 }
 
 uint64 sys_sbrk(int n)
@@ -336,7 +356,7 @@ void syscall()
 		ret = sys_unlinkat(args[0], args[1], args[2]);
 		break;
 	case SYS_spawn:
-		ret = sys_spawn(args[0], args[1]);
+		ret = sys_spawn(args[0]);
 		break;
 	case SYS_sbrk:
                 ret = sys_sbrk(args[0]);

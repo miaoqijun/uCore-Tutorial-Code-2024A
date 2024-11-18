@@ -18,6 +18,7 @@ struct inode {
 	uint size;
 	uint addrs[NDIRECT + 1];
 	// LAB4: You may need to add link count here
+	short nlink;
 };
 
 // Defines a file in memory that provides information about the current use of the file and the corresponding inode location
@@ -37,6 +38,17 @@ enum {
 	STDERR = 2,
 };
 
+struct Stat {
+   uint64 dev;
+   uint64 ino;
+   uint32 mode;
+   uint32 nlink;
+   uint64 pad[7];
+};
+
+#define DIR 0x040000
+#define FILE 0x100000
+
 extern struct file filepool[FILEPOOLSIZE];
 
 void fileclose(struct file *);
@@ -46,5 +58,7 @@ uint64 inodewrite(struct file *, uint64, uint64);
 uint64 inoderead(struct file *, uint64, uint64);
 struct file *stdio_init(int);
 int show_all_files();
+int linkat(int, char*, int, char*, unsigned int);
+int unlinkat(int, char*, unsigned int);
 
 #endif // FILE_H

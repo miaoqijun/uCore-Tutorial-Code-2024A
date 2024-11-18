@@ -154,3 +154,35 @@ uint64 inoderead(struct file *f, uint64 va, uint64 len)
 		f->off += r;
 	return r;
 }
+
+int linkat(int olddirfd, char* oldpath, int newdirfd, char* newpath, unsigned int flags)
+{
+	struct inode *ip, *dp;
+	ip = create(oldpath, T_FILE);
+	if (ip == 0) {
+		return -1;
+	}
+
+	dp = root_dir();
+	ivalid(dp);
+	if (dirlink(dp, newpath, ip->inum) < 0)
+		panic("linkat: dirlink");
+	iput(dp);
+	ip->nlink++;
+	iupdate(ip);
+	iput(ip);
+	return 0;
+}
+
+int unlinkat(int dirfd, char* path, unsigned int flags)
+{
+	struct inode *ip, *dp;
+	dp = root_dir();
+	ivalid(dp);
+	if((ip = dirunlink(dp, path)) == 0)
+		return -1;
+	ip->nlink--;
+	iupdate(ip);
+	iput(ip);
+	return 0;
+}
